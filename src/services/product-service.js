@@ -96,8 +96,77 @@ const getProductBySlug = async (slug) => {
   }
 };
 
+// Fetch products with minimal data for list/card view
+const getProductsMinimal = async (page = 1, pageSize = DEFAULT_PAGE_SIZE) => {
+  try {
+    const db = getDB();
+    const collection = db.collection(COLLECTION_NAME);
+
+    const validPage = Math.max(1, parseInt(page) || 1);
+    const validPageSize = Math.max(
+      1,
+      Math.min(100, parseInt(pageSize) || DEFAULT_PAGE_SIZE)
+    );
+
+    const skip = (validPage - 1) * validPageSize;
+    const totalCount = await collection.estimatedDocumentCount();
+
+    const products = await collection
+      .find({})
+      .project({
+        product_slug: 1,
+        "snapshot.product_name": 1,
+        "snapshot.company_name": 1,
+        "snapshot.product_description_short": 1,
+        "snapshot.description": 1,
+        "snapshot.website": 1,
+        "snapshot.logo_url": 1,
+        "snapshot.parent_category": 1,
+        "snapshot.industry": 1,
+      })
+      .skip(skip)
+      .limit(validPageSize)
+      .toArray();
+
+    // Transform the data to flatten it for easier frontend consumption
+    const transformedProducts = products.map((product) => ({
+      _id: product._id,
+      product_slug: product.product_slug,
+      product_name: product.snapshot?.product_name || "Unknown Product",
+      company_name: product.snapshot?.company_name || "Unknown Company",
+      description:
+        product.snapshot?.product_description_short ||
+        product.snapshot?.description ||
+        "No description available",
+      website: product.snapshot?.website || null,
+      logo_url: product.snapshot?.logo_url || null,
+      parent_category: product.snapshot?.parent_category || "Uncategorized",
+      industry: product.snapshot?.industry || [],
+    }));
+
+    const totalPages = Math.ceil(totalCount / validPageSize);
+
+    return {
+      success: true,
+      data: transformedProducts,
+      pagination: {
+        currentPage: validPage,
+        pageSize: validPageSize,
+        totalItems: totalCount,
+        totalPages,
+        hasNextPage: validPage < totalPages,
+        hasPreviousPage: validPage > 1,
+      },
+    };
+  } catch (error) {
+    console.error("Error fetching minimal products:", error.message);
+    throw new Error(`Failed to fetch products: ${error.message}`);
+  }
+};
+
 module.exports = {
   getProducts,
   getProductById,
   getProductBySlug,
+  getProductsMinimal,
 };

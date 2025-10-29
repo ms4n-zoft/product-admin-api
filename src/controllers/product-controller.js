@@ -2,6 +2,7 @@ const {
   getProducts,
   getProductById,
   getProductBySlug,
+  getProductsMinimal,
 } = require("../services/product-service");
 
 // Get paginated products
@@ -64,8 +65,24 @@ const getProductBySlugController = async (req, res) => {
   }
 };
 
+// Get paginated products with minimal data for listing/cards
+const getProductsMinimalController = async (req, res) => {
+  try {
+    const { page, pageSize } = req.query;
+    const result = await getProductsMinimal(page, pageSize);
+    res.status(200).json(result);
+  } catch (error) {
+    console.error("Error in getProductsMinimalController:", error.message);
+    res.status(500).json({
+      success: false,
+      error: "Failed to fetch products",
+    });
+  }
+};
+
 module.exports = {
   getProductsController,
   getProductByIdController,
   getProductBySlugController,
+  getProductsMinimalController,
 };
