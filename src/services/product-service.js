@@ -1,7 +1,11 @@
 const { getDB } = require("../config/db-config");
+const { ObjectId } = require("mongodb");
 
 const COLLECTION_NAME = "final_product_payloads";
 const DEFAULT_PAGE_SIZE = 10;
+
+// Collection has indexes on: url, product_slug, source, generated_at,
+// snapshot.product_name, snapshot.company_name, snapshot.parent_category, snapshot.website
 
 // Fetch products with pagination
 const getProducts = async (page = 1, pageSize = DEFAULT_PAGE_SIZE) => {
@@ -16,7 +20,7 @@ const getProducts = async (page = 1, pageSize = DEFAULT_PAGE_SIZE) => {
     );
 
     const skip = (validPage - 1) * validPageSize;
-    const totalCount = await collection.countDocuments();
+    const totalCount = await collection.estimatedDocumentCount(); // Faster for large collections
 
     const products = await collection
       .find({})
@@ -53,10 +57,14 @@ const getProductById = async (productId) => {
   try {
     const db = getDB();
     const collection = db.collection(COLLECTION_NAME);
-    const { ObjectId } = require("mongodb");
+
+    // Validate ObjectId format
+    if (!ObjectId.isValid(productId)) {
+      return null;
+    }
 
     const product = await collection.findOne(
-      { _id: new ObjectId(productId) },
+      { _id: ObjectId.createFromHexString(productId) },
       { projection: { product_slug: 1, snapshot: 1 } }
     );
 
