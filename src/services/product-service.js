@@ -1,4 +1,4 @@
-const { getDB } = require("../config/db-config");
+const { getDB } = require("../../config/db-config");
 const { ObjectId } = require("mongodb");
 
 const COLLECTION_NAME = "final_product_payloads";
