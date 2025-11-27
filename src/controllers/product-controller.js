@@ -68,8 +68,8 @@ const getProductBySlugController = async (req, res) => {
 // Get paginated products with minimal data for listing/cards
 const getProductsMinimalController = async (req, res) => {
   try {
-    const { page, pageSize } = req.query;
-    const result = await getProductsMinimal(page, pageSize);
+    const { page, pageSize, sortBy } = req.query;
+    const result = await getProductsMinimal(page, pageSize, sortBy);
     res.status(200).json(result);
   } catch (error) {
     console.error("Error in getProductsMinimalController:", error.message);

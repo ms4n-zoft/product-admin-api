@@ -27,6 +27,7 @@ const getProducts = async (page = 1, pageSize = DEFAULT_PAGE_SIZE) => {
       .project({
         product_slug: 1,
         snapshot: 1,
+        completion_percentage: 1,
       })
       .skip(skip)
       .limit(validPageSize)
@@ -65,7 +66,7 @@ const getProductById = async (productId) => {
 
     const product = await collection.findOne(
       { _id: ObjectId.createFromHexString(productId) },
-      { projection: { product_slug: 1, snapshot: 1 } }
+      { projection: { product_slug: 1, snapshot: 1, completion_percentage: 1 } }
     );
 
     return product;
@@ -86,6 +87,7 @@ const getProductBySlug = async (slug) => {
       .project({
         product_slug: 1,
         snapshot: 1,
+        completion_percentage: 1,
       })
       .toArray();
 
@@ -97,7 +99,11 @@ const getProductBySlug = async (slug) => {
 };
 
 // Fetch products with minimal data for list/card view
-const getProductsMinimal = async (page = 1, pageSize = DEFAULT_PAGE_SIZE) => {
+const getProductsMinimal = async (
+  page = 1,
+  pageSize = DEFAULT_PAGE_SIZE,
+  sortBy = "latest"
+) => {
   try {
     const db = getDB();
     const collection = db.collection(COLLECTION_NAME);
@@ -108,6 +114,9 @@ const getProductsMinimal = async (page = 1, pageSize = DEFAULT_PAGE_SIZE) => {
       Math.min(100, parseInt(pageSize) || DEFAULT_PAGE_SIZE)
     );
 
+    // Determine sort order: 'latest' = newest first (-1), 'oldest' = oldest first (1)
+    const sortOrder = sortBy === "oldest" ? 1 : -1;
+
     const skip = (validPage - 1) * validPageSize;
     const totalCount = await collection.estimatedDocumentCount();
 
@@ -115,15 +124,17 @@ const getProductsMinimal = async (page = 1, pageSize = DEFAULT_PAGE_SIZE) => {
       .find({})
       .project({
         product_slug: 1,
+        completion_percentage: 1,
+        generated_at: 1,
         "snapshot.product_name": 1,
         "snapshot.company_name": 1,
-        "snapshot.product_description_short": 1,
-        "snapshot.description": 1,
+        "snapshot.short_description": 1,
         "snapshot.website": 1,
         "snapshot.logo_url": 1,
         "snapshot.parent_category": 1,
         "snapshot.industry": 1,
       })
+      .sort({ generated_at: sortOrder })
       .skip(skip)
       .limit(validPageSize)
       .toArray();
@@ -132,12 +143,12 @@ const getProductsMinimal = async (page = 1, pageSize = DEFAULT_PAGE_SIZE) => {
     const transformedProducts = products.map((product) => ({
       _id: product._id,
       product_slug: product.product_slug,
+      completion_percentage: product.completion_percentage || 0,
+      generated_at: product.generated_at || null,
       product_name: product.snapshot?.product_name || "Unknown Product",
       company_name: product.snapshot?.company_name || "Unknown Company",
-      description:
-        product.snapshot?.product_description_short ||
-        product.snapshot?.description ||
-        "No description available",
+      short_description:
+        product.snapshot?.short_description || "No description available",
       website: product.snapshot?.website || null,
       logo_url: product.snapshot?.logo_url || null,
       parent_category: product.snapshot?.parent_category || "Uncategorized",
