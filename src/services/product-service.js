@@ -157,6 +157,36 @@ const getProductsMinimal = async (
 
     const totalPages = Math.ceil(totalCount / validPageSize);
 
+    // Calculate completion statistics for all products
+    const completionStats = await collection
+      .aggregate([
+        {
+          $facet: {
+            high: [
+              { $match: { completion_percentage: { $gt: 50 } } },
+              { $count: "count" },
+            ],
+            medium: [
+              {
+                $match: {
+                  completion_percentage: { $gte: 35, $lte: 50 },
+                },
+              },
+              { $count: "count" },
+            ],
+            low: [
+              { $match: { completion_percentage: { $lt: 35 } } },
+              { $count: "count" },
+            ],
+          },
+        },
+      ])
+      .toArray();
+
+    const highCount = completionStats[0]?.high[0]?.count || 0;
+    const mediumCount = completionStats[0]?.medium[0]?.count || 0;
+    const lowCount = completionStats[0]?.low[0]?.count || 0;
+
     return {
       success: true,
       data: transformedProducts,
@@ -167,6 +197,11 @@ const getProductsMinimal = async (
         totalPages,
         hasNextPage: validPage < totalPages,
         hasPreviousPage: validPage > 1,
+      },
+      completionStats: {
+        high: highCount,
+        medium: mediumCount,
+        low: lowCount,
       },
     };
   } catch (error) {
