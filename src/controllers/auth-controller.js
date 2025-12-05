@@ -1,11 +1,24 @@
 const jwt = require("jsonwebtoken");
 const { jwtConfig, validateCredentials } = require("../../config/auth-config");
+const { logLoginAttempt } = require("../services/audit-service");
 
 const loginController = async (req, res) => {
+  const ip =
+    req.ip || req.headers["x-forwarded-for"] || req.socket?.remoteAddress;
+  const userAgent = req.headers["user-agent"];
+
   try {
     const { email, password } = req.body;
 
     if (!email || !password) {
+      await logLoginAttempt({
+        email,
+        success: false,
+        ip,
+        userAgent,
+        reason: "MISSING_CREDENTIALS",
+      });
+
       return res.status(400).json({
         success: false,
         error: "Email and password are required",
@@ -16,7 +29,14 @@ const loginController = async (req, res) => {
     const validation = await validateCredentials(email, password);
 
     if (!validation.isValid) {
-      // Generic error prevents email enumeration attacks
+      await logLoginAttempt({
+        email,
+        success: false,
+        ip,
+        userAgent,
+        reason: validation.message,
+      });
+
       return res.status(401).json({
         success: false,
         error: "Invalid email or password",
@@ -44,6 +64,14 @@ const loginController = async (req, res) => {
       expiresAt.setMinutes(expiresAt.getMinutes() + parseInt(expiresIn));
     }
 
+    await logLoginAttempt({
+      email,
+      success: true,
+      ip,
+      userAgent,
+      reason: null,
+    });
+
     return res.status(200).json({
       success: true,
       message: "Login successful",
@@ -59,6 +87,15 @@ const loginController = async (req, res) => {
     });
   } catch (error) {
     console.error("Login error:", error);
+
+    await logLoginAttempt({
+      email: req.body?.email,
+      success: false,
+      ip,
+      userAgent,
+      reason: "LOGIN_ERROR",
+    });
+
     return res.status(500).json({
       success: false,
       error: "An error occurred during login",
