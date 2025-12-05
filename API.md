@@ -53,6 +53,7 @@ Fetch paginated products with minimal data optimized for listing pages and UI ca
 |-----------|------|---------|-------------|
 | page | number | 1 | Page number (starts from 1) |
 | pageSize | number | 10 | Items per page (max: 100) |
+| sortBy | string | "latest" | Sort order: "latest" (newest first) or "oldest" (oldest first) |
 
 **Response:**
 
@@ -65,11 +66,13 @@ Fetch paginated products with minimal data optimized for listing pages and UI ca
       "product_slug": "100-ai-prompts",
       "product_name": "100+ AI Prompts",
       "company_name": "Trello",
-      "description": "A Trello board template collecting over 100 AI prompts and prompt-writing resources...",
+      "short_description": "A Trello board template collecting over 100 AI prompts and prompt-writing resources...",
       "website": "https://trello.com/b/4BPkSY1w/100-ai-prompts-resources-prompt-lovers",
       "logo_url": "https://upload.wikimedia.org/wikipedia/commons/6/60/Trello_logo.svg",
       "parent_category": "Project Management / Collaboration",
-      "industry": ["Productivity", "Project Management", "Team Collaboration"]
+      "industry": ["Productivity", "Project Management", "Team Collaboration"],
+      "completion_percentage": 85,
+      "generated_at": "2025-11-27T10:30:00Z"
     }
   ],
   "pagination": {
@@ -79,6 +82,11 @@ Fetch paginated products with minimal data optimized for listing pages and UI ca
     "totalPages": 15,
     "hasNextPage": true,
     "hasPreviousPage": false
+  },
+  "completionStats": {
+    "high": 95,
+    "medium": 35,
+    "low": 20
   }
 }
 ```
@@ -88,8 +96,15 @@ Fetch paginated products with minimal data optimized for listing pages and UI ca
 **Example:**
 
 ```
-GET /products/minimal?page=2&pageSize=15
+GET /products/minimal?page=2&pageSize=15&sortBy=oldest
 ```
+
+**Features:**
+
+- Includes completion statistics for data quality insights
+- Supports sorting by date (latest/oldest)
+- Flattened minimal data structure for easy consumption
+- Includes `completion_percentage` and `generated_at` fields
 
 ---
 
